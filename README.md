@@ -10,6 +10,7 @@ Add-on documentation: <https://developers.home-assistant.io/docs/add-ons>
 
 This repository contains the following add-ons
 
+### [ha-addons/example](./example)
 ### [ha-addons/doobell](./doorbell)
 
 ![Supports aarch64 Architecture][aarch64-shield]
