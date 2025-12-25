@@ -15,8 +15,8 @@ if [ "${VERBOSE}" = "true" ]; then
   bashio::log.info "preserve_changes=${PRESERVE_CHANGES}"
 fi
 
-SRC_DIR="/app/homeassistant"
-DST_DIR="/homeassistant/custom_components"
+SRC_DIR="/app/homeassistant/doorbell"
+DST_DIR="/homeassistant/custom_components/doorbell"
 
 # Safety checks
 if [ ! -d "${SRC_DIR}" ]; then
