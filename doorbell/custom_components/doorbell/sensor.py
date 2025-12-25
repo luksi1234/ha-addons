@@ -16,7 +16,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     coordinator = data["coordinator"]
     async_add_entities([
         DoorbellStatusSensor(coordinator),
-        DoorbellInfoSensor(coordinator, "addon"),
+        DoorbellInfoSensor(coordinator, "host"),
         DoorbellInfoSensor(coordinator, "port"),
     ])
 

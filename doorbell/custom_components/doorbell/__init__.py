@@ -91,6 +91,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             status_task = asyncio.create_task(client.status())
             info_task = asyncio.create_task(client.info())
             status, info = await asyncio.gather(status_task, info_task)
+            _LOGGER.debug("status_task %s", status)
+            _LOGGER.debug("info_task %s", info)
+
+
 
             # If your API returns {"error": "..."} on failure, convert to UpdateFailed
             for name, resp in (("status", status), ("info", info)):
