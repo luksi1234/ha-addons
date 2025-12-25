@@ -15,11 +15,13 @@ class DoorbellClient:
 
     async def _get_json(self, path: str) -> Dict[str, Any]:
         async with self._session.get(f"{self._base}{path}", headers=self._headers) as r:
+            _LOGGER.info("_get_json %s ... %s",self._base,path)
             r.raise_for_status()
             return await r.json()
 
     async def _post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         async with self._session.post(f"{self._base}{path}", json=payload, headers=self._headers) as r:
+            _LOGGER.info("_post_json %s ... %s",self._base,path)
             r.raise_for_status()
             return await r.json()
 

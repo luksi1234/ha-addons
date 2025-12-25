@@ -54,4 +54,4 @@ class DoorbellInfoSensor(CoordinatorEntity, SensorEntity):
         # Expected: {"addon": "...", "port": "..."} or {"error": "..."}
         info = self.coordinator.data.get("info")
         _LOGGER.info("sensor: info: %s",info)
-        return (info or {}).get(self._key) or (info or {}).get("error") or "unknown"
+        return (info.get('info') or {}).get(self._key) or (info or {}).get("error") or "unknown"

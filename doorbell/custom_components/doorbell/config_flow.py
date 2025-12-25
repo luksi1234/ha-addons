@@ -29,7 +29,7 @@ class DoorbellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         data_schema = vol.Schema({
-            vol.Required("base_url", description={"suggested_value": "http://localhost:"+str(DEFAULT_PORT)}): str,
+            vol.Required("base_url", description={"suggested_value": "http://127.0.0.1:"+str(DEFAULT_PORT)}): str,
             #vol.Optional("token"): str,
         })
 
