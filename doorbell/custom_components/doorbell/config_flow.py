@@ -5,7 +5,8 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from . import DOMAIN, DEFAULT_PORT
+from . import DOMAIN
+from .const import DEFAULT_PORT
 
 class DoorbellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
