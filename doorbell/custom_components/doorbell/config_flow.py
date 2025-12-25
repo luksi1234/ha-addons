@@ -37,7 +37,7 @@ class DoorbellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @callback
     def async_get_options_flow(config_entry):
-        return DoorbellOptionsFlowHandler(config_entry)
+        return DoorbellOptionsFlowHandler()
 
 class DoorbellOptionsFlowHandler(config_entries.OptionsFlow):
     #def __init__(self, config_entry):
