@@ -1,0 +1,100 @@
+beep:
+  name: Beep
+  description: Play beep noise
+  fields:
+    number:
+      name: Number of beeps
+      description: number of beeps
+      example: 1
+      required: True
+      selector:
+        text:
+    volume:
+      name: Volume
+      description: volume in percentage
+      required: False
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+
+tts:
+  name: TTS
+  description: Play tts message
+  fields:
+    message:
+      name: Message
+      description: Message for tts
+      example: This is a test!
+      required: True
+      selector:
+        text:
+    volume:
+      name: Volume
+      description: volume in percentage
+      required: False
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+
+play:
+  name: Play
+  description: Play sound file
+  fields:
+    filename:
+      name: Audio filename
+      example: chime.mp3
+      description: filename to play
+      required: True
+      selector:
+        text:
+    volume:
+      name: Volume
+      description: volume in percentage
+      required: False
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+
+loop:
+  name: Loop
+  description: Loop sound file
+  fields:
+    filename:
+      name: Audio filename
+      example: chime.mp3
+      description: filename to loop
+      required: True
+      selector:
+        text:
+    volume:
+      name: Volume
+      description: volume in percentage
+      required: False
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+
+stop:
+  name: Stop
+  description: Stop playing
+
+status:
+  name: Status
+  description: Get status of services
+
+info:
+  name: Info
+  description: Get Info of addon
+
+check:
+  name: Check
+  description: gerneral check

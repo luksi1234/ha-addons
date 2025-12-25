@@ -1,0 +1,44 @@
+name: Doorbell
+description: Homeassistant Doorbell Add-On
+version: "1.0.0"
+slug: doorbell
+init: false
+discovery:
+  - doorbell
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+map:
+  - type: media
+    read_only: False
+  - type: data
+    read_only: False
+  - type: homeassistant_config
+    read_only: False
+startup: services
+boot: manual
+ports:
+  5000/tcp: 5000
+full_access: False
+full_access: False
+hassio_role: default
+auth_api: True
+hassio_api: True
+homeassistant_api: True
+stdin: True
+audio: True
+options:
+  preserve_changes: False
+  verbose_logging: True
+  tts_lang: de-DE
+  log_level: debug
+schema:
+  preserve_changes: bool
+  verbose_logging: bool
+  tts_lang: list(en-US|en-GB|de-DE|es-ES|fr-FR|it-IT)
+  log_level: list(debug|info|warning|error)
+
+
