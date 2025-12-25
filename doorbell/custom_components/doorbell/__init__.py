@@ -17,6 +17,9 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = ["sensor", "button"]
 
+class AuthError(Exception):
+    pass
+
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Register domain-level services (available even without entries)."""
 
