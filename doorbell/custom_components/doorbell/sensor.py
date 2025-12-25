@@ -37,7 +37,7 @@ class DoorbellStatusSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         # Expected: {"status": "..."} or {"error": "..."}
         status = self.coordinator.data.get("status")
-        _LOGGER.info("sensor: status: %s",status)
+        _LOGGER.debug("sensor: status: %s",status)
         return (status or {}).get("status") or (status or {}).get("error") or "unknown"
 
 class DoorbellInfoSensor(CoordinatorEntity, SensorEntity):
@@ -53,5 +53,5 @@ class DoorbellInfoSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         # Expected: {"addon": "...", "port": "..."} or {"error": "..."}
         info = self.coordinator.data.get("info")
-        _LOGGER.info("sensor: info: %s",info)
+        _LOGGER.debug("sensor: info: %s",info)
         return (info.get('info') or {}).get(self._key) or (info or {}).get("error") or "unknown"

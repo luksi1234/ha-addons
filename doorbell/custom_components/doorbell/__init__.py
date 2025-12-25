@@ -30,7 +30,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
         data = next(iter(hass.data[DOMAIN].values()))
         client: DoorbellClient = data["client"]
 
-        _LOGGER.info("call_data %s", call.data)
+        _LOGGER.debug("call_data %s", call.data)
 
         svc = call.service
         try:
