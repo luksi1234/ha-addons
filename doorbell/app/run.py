@@ -171,4 +171,4 @@ def info():
 
 
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT, debug=False)
+    app.run(host=HOST, port=PORT, debug=False, threaded=True)
