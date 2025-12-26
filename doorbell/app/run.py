@@ -4,7 +4,8 @@ import os
 from const import LOG_LEVEL, HOST, PORT, ADDON_SLUG, TTS_LANG
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+#from flask_cors import CORS
+from waitress import serve
 from audio import play_local_file, AudioPlaybackError, play_stream
 from controller import audio_controller
 from pico2wave import PicoTTS
@@ -21,7 +22,7 @@ logging.basicConfig(level=LOG_LEVEL)
 _LOGGER = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+#CORS(app)
 
 @app.route("/tts", methods=["POST"])
 def tts():
@@ -171,4 +172,5 @@ def info():
 
 
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT, debug=False, threaded=True)
+    #app.run(host=HOST, port=PORT, debug=False, threaded=True)
+    serve(app, host=HOST, port=PORT)

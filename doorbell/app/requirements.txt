@@ -3,4 +3,5 @@ flask-cors
 Flask
 pydub
 requests
+waitress
 simpleaudio-patched
