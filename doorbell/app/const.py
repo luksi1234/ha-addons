@@ -12,6 +12,7 @@ PORT      = APP_PORT
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info").upper()
 TTS_LANG  = os.getenv("TTS_LANG", "en-US")
 MAX_LOOP_SEC  = os.getenv("LOOP_DURATION", "60")
+DOORBELL_OUTPUT  = os.getenv("DOORBELL_OUTPUT", "")
 
 HOST = "0.0.0.0"
 
