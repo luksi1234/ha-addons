@@ -8,7 +8,11 @@ import io
 #TODO mac duration of loop should be configurable
 MAX_LOOP_MS = 60000
 
-from const import DOORBELL_OUTPUT
+from const import LOG_LEVEL, DOORBELL_OUTPUT
+
+logging.basicConfig(level=LOG_LEVEL)
+
+_LOGGER = logging.getLogger(__name__)
 
 class AudioPlayer:
     def __init__(self, source, loops=1, volume=1.0, samplerate=None):
@@ -44,6 +48,9 @@ class AudioPlayer:
 
         self._stop_event = threading.Event()
         self._should_stop_after_block = False
+
+        _LOGGER.debug("samplerate: %s", self.samplerate)
+        _LOGGER.debug("channels: %s", self.channels)
 
         self.stream = sd.OutputStream(
             device=DOORBELL_OUTPUT,

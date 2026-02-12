@@ -188,7 +188,8 @@ def beep_audio(req: BeepRequest):
                 frequency=880,
                 tone_ms=250,
                 silence_ms=250,
-                samplerate=16000
+                #samplerate=16000
+                samplerate=22050
             )
 
             player = AudioPlayer(
