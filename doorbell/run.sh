@@ -71,7 +71,7 @@ export DOORBELL_OUTPUT="${DOORBELL_OUTPUT}"
 
 bashio::log.info "possible outputs ..."
 
-exec python3 -m sounddevice
+python3 -m sounddevice
 
 bashio::log.info "starting up ..."
 #exec /usr/local/bin/doorbell-discovery.sh
