@@ -4,6 +4,7 @@ import numpy as np
 import threading
 import time
 import io
+import logging
 
 #TODO mac duration of loop should be configurable
 MAX_LOOP_MS = 60000
