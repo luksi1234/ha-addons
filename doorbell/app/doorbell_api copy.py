@@ -9,22 +9,15 @@ import threading
 from pico2wave import PicoTTS, VOICES
 import beepnoise2
 import wave
-import soundfile as sf
-import numpy as np
 from io import BytesIO
 from time import sleep
 
 
 # import your AudioPlayer class here
 from audio_player import AudioPlayer
-from audio_player import AudioPlayer2
 
 from const import LOG_LEVEL, HOST, PORT, ADDON_SLUG, TTS_LANG
-from const import AUDIO_DIR, ALLOWED_EXTENSIONS, DOORBELL_OUTPUT
-
-
-
-
+from const import AUDIO_DIR, ALLOWED_EXTENSIONS
 
 app = FastAPI(title="Doorbell API")
 
@@ -34,8 +27,6 @@ _LOGGER = logging.getLogger(__name__)
 
 player_lock = threading.Lock()
 player = None
-
-player2 = None
 
 #HOST = "0.0.0.0"
 #PORT = 5000
@@ -218,61 +209,6 @@ def beep_audio(req: BeepRequest):
 
 @app.post("/play")
 def play_audio(req: PlayRequest):
-    global player2
-
-    with player_lock:
-        if player2:
-            print("stopping existing player")
-            #player2.stop()
-            #player2.close()
-        else:
-            print("no player to stop, starting new one")
-
-            player2 = AudioPlayer2(
-                device=DOORBELL_OUTPUT,
-                channels=1
-            )
-
-
-
-        try:
-            path = os.path.join(AUDIO_DIR, req.filename)
-
-            source = path
-            # ------------------------------------
-            # Source handling
-            # ------------------------------------
-            if isinstance(source, np.ndarray):
-                _LOGGER.debug("handling bytearray")
-                if samplerate is None:
-                    raise ValueError("samplerate required for numpy source")
-
-                data = source.astype(np.float32)
-                samplerate = samplerate
-
-            else:
-                _LOGGER.debug("handling bytearfile")
-                if isinstance(source, (bytes, bytearray)):
-                    source = io.BytesIO(source)
-
-                data, samplerate = sf.read(source, dtype="float32")
-
-                if data.ndim == 1:
-                    data = data[:, np.newaxis]
-
-
-            player2.play(
-                audio_data=data,
-                input_samplerate=samplerate,
-                loop=False
-            )
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    return {"status": "playing", "filename": req.filename}
-
-@app.post("/play_bak")
-def play_audio_bak(req: PlayRequest):
     global player
 
     with player_lock:
@@ -292,6 +228,7 @@ def play_audio_bak(req: PlayRequest):
             raise HTTPException(status_code=400, detail=str(e))
 
     return {"status": "playing", "filename": req.filename}
+
 
 @app.post("/loop")
 def loop_audio(req: LoopRequest):
@@ -348,6 +285,4 @@ def info_audio():
 
 
 if __name__ == "__main__":
-
-
     uvicorn.run("doorbell_api:app", host=HOST, port=PORT, reload=True, log_level=LOG_LEVEL.lower())

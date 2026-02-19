@@ -2,3 +2,4 @@ sounddevice
 soundfile
 uvicorn
 fastapi
+scipy

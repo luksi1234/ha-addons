@@ -38,9 +38,9 @@ stdin: True
 audio: False
 options:
   loop_duration: 60
-  output: hw:0,0
+  output: hw:3,0
   tts_lang: de-DE
-  log_level: warning
+  log_level: debug
 schema:
   loop_duration: int
   output: str

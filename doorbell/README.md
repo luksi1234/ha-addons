@@ -4,6 +4,14 @@ _Doorbell add-on for playing audio files on local audio cards._
 
 Provides a Rest API on port 5000
 
+Important:
+It is needed to deactivate the sound device you would use for doorbell-
+e.g.
+'''ha audio profile --card "alsa_card.usb-GHW-136D-20231007_USB_Audio_20210726905926-00" --name "off"'''
+use '''ha audio info''' to identify the name of audio card
+
+On startup addon a list of available sound devices will be shown.
+
 endpoints:
 
 ```
