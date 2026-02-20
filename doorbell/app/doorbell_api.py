@@ -17,7 +17,6 @@ from time import sleep
 
 # import your AudioPlayer class here
 from audio_player import AudioPlayer
-from audio_player import AudioPlayer2
 
 from const import LOG_LEVEL, HOST, PORT, ADDON_SLUG, TTS_LANG
 from const import AUDIO_DIR, ALLOWED_EXTENSIONS, DOORBELL_OUTPUT
@@ -35,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 player_lock = threading.Lock()
 player = None
 
-player2 = None
+
 
 #HOST = "0.0.0.0"
 #PORT = 5000
@@ -168,11 +167,13 @@ def tts_audio(req: TtsRequest):
             wavs = picotts.synth_wav(req.message)
 
             player = AudioPlayer(
-                source=wavs,
-                loops=1,
+                device=DOORBELL_OUTPUT,
+                channels=1
+            )
+            player.play_bytearray(
+                audio_data=wavs,
                 volume=req.volume/100
             )
-            player.play()
 
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -183,8 +184,6 @@ def tts_audio(req: TtsRequest):
 @app.post("/beep")
 def beep_audio(req: BeepRequest):
     global player
-
-
 
     with player_lock:
         if player:
@@ -204,12 +203,15 @@ def beep_audio(req: BeepRequest):
             )
 
             player = AudioPlayer(
-                source=signal,
-                loops=req.number,
-                volume=req.volume/100,
-                samplerate=sr
+                device=DOORBELL_OUTPUT,
+                channels=1
             )
-            player.play()
+            player.play_numpy(
+                audio_data=signal,
+                input_samplerate=sr,
+                num_loops=req.number,
+                volume=req.volume/100
+            )
 
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -218,80 +220,35 @@ def beep_audio(req: BeepRequest):
 
 @app.post("/play")
 def play_audio(req: PlayRequest):
-    global player2
-
-    with player_lock:
-        if player2:
-            print("stopping existing player")
-            #player2.stop()
-            #player2.close()
-        else:
-            print("no player to stop, starting new one")
-
-            player2 = AudioPlayer2(
-                device=DOORBELL_OUTPUT,
-                channels=1
-            )
-
-
-
-        try:
-            path = os.path.join(AUDIO_DIR, req.filename)
-
-            source = path
-            # ------------------------------------
-            # Source handling
-            # ------------------------------------
-            if isinstance(source, np.ndarray):
-                _LOGGER.debug("handling bytearray")
-                if samplerate is None:
-                    raise ValueError("samplerate required for numpy source")
-
-                data = source.astype(np.float32)
-                samplerate = samplerate
-
-            else:
-                _LOGGER.debug("handling bytearfile")
-                if isinstance(source, (bytes, bytearray)):
-                    source = io.BytesIO(source)
-
-                data, samplerate = sf.read(source, dtype="float32")
-
-                if data.ndim == 1:
-                    data = data[:, np.newaxis]
-
-
-            player2.play(
-                audio_data=data,
-                input_samplerate=samplerate,
-                loop=False
-            )
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    return {"status": "playing", "filename": req.filename}
-
-@app.post("/play_bak")
-def play_audio_bak(req: PlayRequest):
     global player
 
     with player_lock:
         if player:
+            print("stopping existing player")
             player.stop()
             player.close()
+        else:
+            print("no player to stop, starting new one")
+
 
         try:
             path = os.path.join(AUDIO_DIR, req.filename)
+
             player = AudioPlayer(
-                source=path,
-                loops=1,
-                volume=req.volume/100
+                device=DOORBELL_OUTPUT,
+                channels=1
             )
-            player.play()
+
+            player.play(
+                audio_source=path,
+                #loop=False,
+                volume=req.volume/100,
+            )
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     return {"status": "playing", "filename": req.filename}
+
 
 @app.post("/loop")
 def loop_audio(req: LoopRequest):
@@ -304,16 +261,23 @@ def loop_audio(req: LoopRequest):
 
         try:
             path = os.path.join(AUDIO_DIR, req.filename)
+            _LOGGER.debug(f"Looping audio file: {path} with volume: {req.volume}")
             player = AudioPlayer(
-                source=path,
-                loops=-1,
+                device=DOORBELL_OUTPUT,
+                channels=1
+            )
+            _LOGGER.debug("Starting loop")
+            player.loop(
+                audio_source=path,
                 volume=req.volume/100
             )
-            player.play()
+            _LOGGER.debug("Loop started")
+
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
     #TODO max duration should be configurable
     return {"status": "looping", "filename": req.filename, "max_duration_ms": 60000}
+
 
 
 @app.get("/stop")
@@ -329,6 +293,7 @@ def stop_audio():
         player = None
 
     return {"status": "stopped"}
+
 
 @app.get("/status")
 def status_audio():

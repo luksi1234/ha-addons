@@ -7,6 +7,7 @@ import io
 import logging
 import queue
 from scipy import signal
+from scipy.signal import resample
 
 
 #TODO mac duration of loop should be configurable
@@ -22,15 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 
-
-import sounddevice as sd
-import numpy as np
-import threading
-import time
-from scipy.signal import resample
-
-
-class AudioPlayer2:
+class AudioPlayer:
 
     def __init__(self, device=None, channels=2, blocksize=2048):
 
@@ -46,7 +39,7 @@ class AudioPlayer2:
         # Playback state
         self.audio_data = None
         self.position = 0
-        self.loop = False
+        self._loop = False
         self.num_loops = 0
         self.max_loop_time = None
         self.play_start_time = None
@@ -108,7 +101,7 @@ class AudioPlayer2:
             end_pos = self.position + frames
 
             if end_pos <= len(self.audio_data):
-
+                _LOGGER.debug("playing block: pos %s - %s", self.position, end_pos)
                 outdata[:] = self.audio_data[self.position:end_pos]
                 self.position = end_pos
 
@@ -118,10 +111,13 @@ class AudioPlayer2:
 
                 if remaining > 0:
                     outdata[:remaining] = self.audio_data[self.position:]
+                    _LOGGER.debug("end playing block: pos %s - %s (end)", self.position, len(self.audio_data))
+                    self.num_loops -= 1
                 else:
                     remaining = 0
 
-                if self.loop:
+                if self._loop:
+                    _LOGGER.debug("looping enabled, restarting audio")
                     if self.max_loop_time is not None:
                         if time.time() - self.play_start_time >= self.max_loop_time:
                             self.audio_data = None
@@ -132,10 +128,19 @@ class AudioPlayer2:
                     restart_len = frames - remaining
                     outdata[remaining:] = self.audio_data[:restart_len]
                     self.position = restart_len
+                elif self.num_loops > 0:
+                    _LOGGER.debug("looping enabled, %s loops remaining", self.num_loops)
+
+                    # restart from beginning
+                    restart_len = frames - remaining
+                    outdata[remaining:] = self.audio_data[:restart_len]
+                    self.position = restart_len
                 else:
                     # stop playback
                     outdata[remaining:] = 0
                     self.audio_data = None
+
+            outdata *= self.volume
 
     def _apply_start_ramp(self, audio, ramp_samples=128):
         ramp_samples = min(ramp_samples, len(audio))
@@ -147,16 +152,99 @@ class AudioPlayer2:
     # Public API
     # =====================================================
 
-    def play(self, audio_data, input_samplerate, loop=False, num_loops=1, max_loop_time=None):
+    def play_bytearray(self, audio_data, input_samplerate, volume=1.0, loop=False, num_loops=1, max_loop_time=None):
+
+        if isinstance(audio_data, (bytes, bytearray)):
+            audio_data = io.BytesIO(audio_data)
+            data, samplerate = sf.read(audio_data, dtype="float32")
+            _LOGGER.debug("handling bytearray, input samplerate: %s", samplerate)
+
+        else:
+            raise ValueError("wrong audio format, expected numpy array")
+
+        audio_data = data.astype(np.float32)
+        audio_data = self._resample_if_needed(audio_data, samplerate)
+        audio_data = self._adapt_channels(audio_data)
+        #audio_data = self._apply_start_ramp(audio_data)
+
+        with self.lock:
+            self.audio_data = audio_data
+            self.position = 0
+            self.volume = volume
+            self.loop = loop
+            self.num_loops = num_loops
+            self.max_loop_time = max_loop_time
+            self.play_start_time = time.time()
+
+    def play_numpy(self, audio_data, input_samplerate, volume=1.0, loop=False, num_loops=1, max_loop_time=None):
+
+        if isinstance(audio_data, np.ndarray):
+            _LOGGER.debug("handling numpy array")
+            if input_samplerate is None:
+                raise ValueError("input_samplerate required for numpy source")
+
+            audio_data = audio_data.astype(np.float32)
+            samplerate = input_samplerate
+
+        else:
+            raise ValueError("wrong audio format, expected numpy array")
 
         audio_data = audio_data.astype(np.float32)
         audio_data = self._resample_if_needed(audio_data, input_samplerate)
+        audio_data = self._adapt_channels(audio_data)
+        #audio_data = self._apply_start_ramp(audio_data)
+
+        with self.lock:
+            self.audio_data = audio_data
+            self.position = 0
+            self.volume = volume
+            self.loop = loop
+            self.num_loops = num_loops
+            self.max_loop_time = max_loop_time
+            self.play_start_time = time.time()
+
+    def loop(self, audio_source, volume=1.0, max_loop_time=None):
+
+        _LOGGER.debug("starting loop playback with max_loop_time=%s ms", max_loop_time)
+
+        loop = True
+        num_loops = 1
+
+        audio_data, samplerate = sf.read(audio_source, dtype="float32")
+        audio_data = audio_data.astype(np.float32)
+        audio_data = self._resample_if_needed(audio_data, samplerate)
+        audio_data = self._adapt_channels(audio_data)
+
+        _LOGGER.debug("audio data shape after resampling/adapting: %s", audio_data.shape)
+
+        with self.lock:
+            self.audio_data = audio_data
+            self.position = 0
+            self._loop = loop
+            self.volume = volume
+            self.num_loops = num_loops
+            self.max_loop_time = max_loop_time
+            self.play_start_time = time.time()
+
+        _LOGGER.debug("loop playback started")
+
+
+    def play(self, audio_source, volume=1.0):
+
+        loop = False
+        num_loops = 1
+        max_loop_time = None
+
+        audio_data, samplerate = sf.read(audio_source, dtype="float32")
+        audio_data = audio_data.astype(np.float32)
+        audio_data = self._resample_if_needed(audio_data, samplerate)
         audio_data = self._adapt_channels(audio_data)
 
         with self.lock:
             self.audio_data = audio_data
             self.position = 0
             self.loop = loop
+            self.volume = volume
             self.num_loops = num_loops
             self.max_loop_time = max_loop_time
             self.play_start_time = time.time()
@@ -176,158 +264,3 @@ class AudioPlayer2:
 
 
 
-
-
-
-
-########################################################
-#########################################################
-######################################################
-
-class AudioPlayer:
-    def __init__(self, source, loops=1, volume=1.0, samplerate=None):
-
-        #get supported samplerate
-        device_info = sd.query_devices(DOORBELL_OUTPUT, 'output')
-        _LOGGER.debug("device info: \n%s", device_info)
-        default_samplerate=device_info['default_samplerate']
-
-
-        # ------------------------------------
-        # Source handling
-        # ------------------------------------
-        if isinstance(source, np.ndarray):
-            _LOGGER.debug("handling bytearray")
-            if samplerate is None:
-                raise ValueError("samplerate required for numpy source")
-
-            self.data = source.astype(np.float32)
-            self.samplerate = samplerate
-
-        else:
-            _LOGGER.debug("handling bytearfile")
-            if isinstance(source, (bytes, bytearray)):
-                source = io.BytesIO(source)
-
-            self.data, self.samplerate = sf.read(source, dtype="float32")
-
-            if self.data.ndim == 1:
-                self.data = self.data[:, np.newaxis]
-
-        _LOGGER.debug("input samplerate: %s", self.samplerate)
-
-
-        if(self.samplerate != default_samplerate):
-            _LOGGER.debug("doing resample ...")
-            number_of_samples = int(len(self.data) * default_samplerate / self.samplerate)
-            resampled = signal.resample(self.data, number_of_samples)
-            self.data = resampled
-            self.samplerate = default_samplerate
-
-
-        self.audio_queue = queue.Queue()
-        # ------------------------------------
-        self.channels = self.data.shape[1]
-        self.total_frames = len(self.data)
-
-        self.volume = float(volume)
-        self.loops = loops
-
-        self.position = 0
-        self.current_loop = 0
-        self.start_time = None
-
-        self._stop_event = threading.Event()
-        self._ready_event = threading.Event()
-        self._should_stop_after_block = False
-
-        _LOGGER.debug("output samplerate: %s", self.samplerate)
-        _LOGGER.debug("output channels: %s", self.channels)
-
-        self.stream = sd.OutputStream(
-            device=DOORBELL_OUTPUT,
-            samplerate=self.samplerate,
-            channels=self.channels,
-            dtype="float32",
-            callback=self._callback,
-            #callback=self._callback2,
-            #callback=self._callback3,
-            blocksize=2048,
-            latency="high"
-        )
-
-    # --------------------------------------------------
-    # PortAudio-safe callback (NO premature stop)
-    # --------------------------------------------------
-    def _callback(self, outdata, frames, time_info, status):
-
-        #time.sleep(0.05)  # Avoid busy waiting
-
-        outdata.fill(0)
-
-        if self._stop_event.is_set():
-            raise sd.CallbackStop()
-
-        # Stop AFTER last buffer was fully sent
-        if self._should_stop_after_block:
-            raise sd.CallbackStop()
-
-        # Hard loop time cap
-        if self.start_time and (time.time() - self.start_time) * 1000 >= MAX_LOOP_MS:
-            print("Max loop duration reached, stopping after this block")
-            self._should_stop_after_block = True
-            return
-
-        filled = 0
-
-
-
-        while filled < frames:
-            remaining_data = self.total_frames - self.position
-            remaining_out = frames - filled
-
-            if remaining_data >= remaining_out:
-                outdata[filled:filled + remaining_out] = \
-                    self.data[self.position:self.position + remaining_out]
-                self.position += remaining_out
-                filled += remaining_out
-            else:
-                # End of audio
-                outdata[filled:filled + remaining_data] = \
-                    self.data[self.position:]
-                filled += remaining_data
-
-                self.current_loop += 1
-                if self.loops == -1 or self.current_loop < self.loops:
-                    self.position = 0
-                else:
-                    # IMPORTANT: do NOT stop yet
-                    print("Audio finished, stopping after this block")
-                    self._should_stop_after_block = True
-                    break
-
-        outdata *= self.volume
-
-
-    # --------------------------------------------------
-    # Controls
-    # --------------------------------------------------
-    def play(self):
-        self.position = 0
-        self.current_loop = 0
-        self.start_time = time.time()
-        self._should_stop_after_block = False
-        self._stop_event.clear()
-        self.stream.start()
-
-    def stop(self):
-        self._stop_event.set()
-        if self.stream.active:
-            self.stream.stop()
-
-    def close(self):
-        self.stop()
-        self.stream.close()
-
-    def set_volume(self, volume):
-        self.volume = max(0.0, min(1.0, float(volume)))
